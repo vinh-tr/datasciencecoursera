@@ -1,5 +1,6 @@
 
-ProgrammingAssignment3
+ProgrammingAssignment3: Getting and cleaning data
+----
 Data Science Specialization - John Hopkins University
 
 
