@@ -37,4 +37,4 @@ Preprocessed data
 | ------------ | ------------- | -------- |
 | subject_id     | integer      | unique individual id |
 | activity     | string        | possible values: "STANDING", "SITTING", "LAYING", "WALKING", "WALKING_DOWNSTAIRS", "WALKING_UPSTAIRS" |
-| <measurement>     | numeric        | average of the measurement for each individual and activity. Since the measurements were normalized, the values should be between 0 and 1. There are 66 measurements*|
+| measurement    | numeric        | average of the measurement for each individual and activity. Since the measurements were normalized, the values should be between 0 and 1. There are 66 measurements*|
