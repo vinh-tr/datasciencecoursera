@@ -1,0 +1,117 @@
+---
+title: "Practical Machine Learning Project"
+output: html_notebook
+---
+
+In this project, your goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+
+```{r, echo=FALSE}
+library(caret)
+library(dplyr)
+library(gbm)
+library(FactoMineR) # pca
+
+train_file <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_file <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+train_data <-read.csv(train_file, stringsAsFactors = FALSE)
+test_data <-read.csv(test_file, stringsAsFactors = FALSE)
+```
+
+## Data preprocessing
+The windows for each user can perfectly predict the class. Therefore we decided to filter out any information about the windows from the data for the project.
+
+```{r}
+train_data <- train_data %>%
+  select(
+    -X,
+    -starts_with("total"),
+    -contains("timestamp"),
+    -ends_with("window"),
+    -starts_with("kurtosis"),
+    -starts_with("skewness"),
+    -starts_with("max"),
+    -starts_with("min"),
+    -starts_with("amplitude"),
+    -starts_with("var_"),
+    -starts_with("stddev"),
+    -starts_with("avg"),
+  )
+
+pca_res <- train_data %>% 
+  select(-c(user_name, classe)) %>%
+  PCA(., scale.unit = TRUE, graph = FALSE)
+
+
+pca_res$ind$coord %>% as.data.frame() %>%
+  ggplot(aes(x=Dim.1, y=Dim.2, color = train_data$user_name)) +
+  geom_point() +
+  ggtitle("PCA plots of the training set") +
+  labs(color = "User")
+
+
+```
+As expected, the measures are user dependant as show by the PCA plots. In addition, we observed an outlier for the user Eurico (in the bottom rigth of the figure). Without any expertise, we decided to keep the observation in the training dataset. We did not create new features from the dataset.
+
+### Class distribution
+```{r}
+table(train_data$classe)/nrow(train_data)
+```
+We observed a majority of observations in class A. The classes are relatively balanced.
+
+
+## Modeling
+
+We assumed in the following that the observations are independant. In this case, we can use a resampling method ( 10 fold cross-validation in this project) to tune the hyperparameters of the models. We used the default parameters of the package Caret, yielding to tune the interaction depth and the tree number. To estimate the out-of-sample errors, we split the initial training datasets in two dasets: one to fit the model (with 80% of the observations) and the second to estimate the model performance.
+
+```{r}
+set.seed(2324)
+idx <- createDataPartition(y=train_data$classe, p=0.8, list=FALSE)
+training <- train_data[idx, ] 
+oos_set <- training <- train_data[idx, ] 
+
+```
+
+```{r}
+fitControl <- trainControl(method = "cv",
+                           number = 10)
+
+
+system.time(res_gbm <- train(classe ~ ., data = train_data,
+                 method = "gbm",
+                 verbose = FALSE,
+                 trControl = fitControl
+                 )
+)
+```
+
+
+```{r}
+print(res_gbm)
+```
+
+
+```{r}
+varImp(res_gbm)
+```
+```{r}
+confusionMatrix(
+  data = predict(res_gbm, oos_set),
+  reference = as.factor(oos_set$classe)
+)
+```
+The estimated out-of-sample error is about 0.975
+
+## Results on the testing data
+
+```{r}
+predict(res_gbm, test_data)
+```
+
+
+
+
+
+
+
